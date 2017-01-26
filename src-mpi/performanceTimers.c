@@ -35,10 +35,16 @@
 #include <inttypes.h>
 #include <math.h>
 
-#include "performanceTimers.h"
 #include "mytype.h"
 #include "parallel.h"
 #include "yamlOutput.h"
+
+#ifdef USE_CALIPER
+#include <caliper/cali.h>
+
+static cali_id_t timer_name_attr = CALI_INV_ID;
+static cali_id_t timer_id_attr   = CALI_INV_ID;
+#endif
 
 static uint64_t getTime(void);
 static double getTick(void);
@@ -57,7 +63,7 @@ char* timerName[numberOfTimers] = {
    "  force",
    "    eamHalo",
    "commHalo",
-   "commReduce"
+   "commReduce",
 };
 
 /// Timer data collected.  Also facilitates computing averages and
@@ -91,6 +97,21 @@ static TimerGlobal perfGlobal;
 
 void profileStart(const enum TimerHandle handle)
 {
+#ifdef USE_CALIPER
+   if (timer_name_attr == CALI_INV_ID) {
+      timer_name_attr = 
+         cali_create_attribute("CoMD.timer", CALI_TYPE_STRING, 
+                               CALI_ATTR_SCOPE_PROCESS);
+      timer_id_attr   = 
+         cali_create_attribute("CoMD.timer.id", CALI_TYPE_INT, 
+                               CALI_ATTR_SCOPE_PROCESS | 
+                               CALI_ATTR_ASVALUE       | 
+                               CALI_ATTR_SKIP_EVENTS);
+   }
+
+   cali_begin_string(timer_name_attr, timerName[handle]);
+#endif
+
    perfTimer[handle].start = getTime();
 }
 
@@ -100,6 +121,11 @@ void profileStop(const enum TimerHandle handle)
    uint64_t delta = getTime() - perfTimer[handle].start;
    perfTimer[handle].total += delta;
    perfTimer[handle].elapsed += delta;
+
+#ifdef USE_CALIPER
+   cali_set_int(timer_id_attr, handle); /* this hack lets us restore the order of the timer entries */
+   cali_end(timer_name_attr);
+#endif
 }
 
 /// \details

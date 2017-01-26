@@ -9,6 +9,8 @@ SHELL = /bin/bash
 DOUBLE_PRECISION = ON
 # MPI for parallel (ON/OFF)
 DO_MPI = ON
+# use Caliper
+USE_CALIPER = OFF
 
 ### Set your desired C compiler and any necessary flags.  Note that CoMD
 ### uses some c99 features.  You can also set flags for optimization and
@@ -21,6 +23,8 @@ OPTFLAGS = -g -O5
 INCLUDES = 
 C_LIB = -lm
 
+### Caliper installation directory
+CALIPER_DIR =
 
 ### If you need to specify include paths, library paths, or link flags
 ### for MPI, put them here.  Put both -L and -l switches into MPI_LIB.
@@ -32,7 +36,13 @@ MPI_INCLUDE =
 OTHER_LIB =
 OTHER_INCLUDE =
 
-
+### Add Caliper libraries and include paths if needed
+ifeq ($(USE_CALIPER), ON)
+OTHER_INCLUDE  = -I$(CALIPER_DIR)/include
+OTHER_LIB     += -Wl,-rpath -Wl,$(CALIPER_DIR)/lib64 -L$(CALIPER_DIR)/lib64 -lcaliper
+MPI_LIB       += -L$(CALIPER_DIR)/lib64 -lcaliper-mpiwrap
+CFLAGS        += -DUSE_CALIPER
+endif
 
 
 #########################################
